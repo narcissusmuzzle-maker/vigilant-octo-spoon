@@ -1,0 +1,34 @@
+name: Build watch app (Zepp OS)
+# Собирает приложение для Amazfit Bip Max и делает QR-коды для установки через приложение Zepp.
+# Запускается при каждой загрузке файлов в репозиторий и вручную (Actions -> Run workflow).
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  zepp:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      # zeus-cli нельзя ставить как зависимость проекта (падает с "Cannot find module 'zeppos-app-utils'"),
+      # поэтому ставим его глобально, а `npm run build` вызывает его из PATH.
+      - name: Установка zeus-cli глобально
+        run: npm install -g @zeppos/zeus-cli@1.9.3
+      - name: Сборка, пакеты и QR-коды
+        id: pack
+        uses: nailujx86/zeppos-release-action@v1
+        with:
+          publish-pages: true
+          publish-release: true
+      - name: Сохранить файлы сборки
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: U613-watch-build
+          path: |
+            dist/*.zab
+            zepp-site/**
+          if-no-files-found: warn
